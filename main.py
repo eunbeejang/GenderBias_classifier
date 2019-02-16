@@ -49,9 +49,13 @@ def main():
 
 	# save the best model
 	best_model = hyperpram_tune(train_data, valid_data, test_data, optimizer, seq_len, emb_dim, output_dim, word_emb, batch_size, max_vocab_size)
+	print("The best model is: \n")
 	print(best_model)
-	with open(args.save, 'wb') as f:
-		torch.save(model, f)
+#	with open(args.save, 'wb') as f:
+#		torch.save(model, f)
+	torch.save(best_model.state_dict(), './best_model.pt')
+
+
 
 if __name__ == '__main__':
 	main()
