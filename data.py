@@ -1,3 +1,4 @@
+import torch
 from torchtext import data
 from torchtext import datasets
 from torchtext.vocab import GloVe, Vectors
@@ -6,19 +7,22 @@ from nltk.tokenize import word_tokenize
 import re
 
 class dataloader(object):
-    def __init__(self):
+    def __init__(self, batch_size, max_vocab_size):
         self.lemma = WordNetLemmatizer()
-        self.tokenize = lambda x: self.lemma.lemmatize(re.sub(r'<.*?>|[^\w\s]|\d+', '', x)).split()
+        self.batch_size = batch_size
+        self.max_vocab_size = max_vocab_size
 
-    def load_data():
+    def load_data(self):
+        # remove HTML tags, punctuations -> lemmatize -> tokenize
+        tokenize = lambda x: self.lemma.lemmatize(re.sub(r'<.*?>|[^\w\s]|\d+', '', x)).split()
 
-        train, test = datasets.IMDB.splits(TEXT, LABEL)
-
-        TEXT = data.Field(sequential=True, tokenize=self.tokenize, lower=True,
+        TEXT = data.Field(sequential=True, tokenize=tokenize, lower=True,
                            include_lengths=True, batch_first=True, dtype=torch.long) #fix_length=200,
         LABEL = data.LabelField(batch_first=True, sequential=False)
 
-        TEXT.build_vocab(train, max_size=25000, vectors=GloVe(name='6B', dim=300)) # Glove Embedding
+        train, test = datasets.IMDB.splits(TEXT, LABEL)
+
+        TEXT.build_vocab(train, max_size=self.max_vocab_size, vectors=GloVe(name='6B', dim=300)) # Glove Embedding
         LABEL.build_vocab(train)
 
         word_emb = TEXT.vocab.vectors
@@ -26,9 +30,9 @@ class dataloader(object):
 
         train, valid = train.split()
         train_data, valid_data, test_data = data.BucketIterator.splits((train, valid, test),
-                                                                       batch_size=64, repeat=False, shuffle=True)
+                                                                       batch_size=self.batch_size, repeat=False, shuffle=True)
 
-
+        # print data info
         print ("Length of Text Vocabulary: " + str(len(TEXT.vocab)))
         print ("Vector size of Text Vocabulary: ", TEXT.vocab.vectors.size())
         print ("Label Length: " + str(len(LABEL.vocab)))
